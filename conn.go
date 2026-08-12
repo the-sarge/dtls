@@ -157,14 +157,6 @@ func (c handshakeConn) CommitLocalKeyUpdate(generation *dtlsstate.TrafficGenerat
 	return c.conn.commitLocalKeyUpdate(generation)
 }
 
-func (c handshakeConn) PauseApplicationData() {
-	c.conn.pauseApplicationData()
-}
-
-func (c handshakeConn) ResumeApplicationData() {
-	c.conn.resumeApplicationData()
-}
-
 func (c handshakeConn) TakePendingACKs() []protocol.RecordNumber {
 	return c.conn.takePendingACKs()
 }
@@ -207,11 +199,10 @@ type Conn struct {
 	maximumTransmissionUnit int
 	paddingLengthGenerator  func(uint) uint
 
-	handshakeEstablished  *dtlshandshake.Establishment
-	handshakeMutex        sync.Mutex
-	handshakeDone         chan struct{}
-	writeLock             sync.Mutex
-	applicationDataResume chan struct{} // guarded by writeLock; nil while writes may proceed
+	handshakeEstablished *dtlshandshake.Establishment
+	handshakeMutex       sync.Mutex
+	handshakeDone        chan struct{}
+	writeLock            sync.Mutex
 
 	encryptedPackets []addrPkt
 
@@ -680,53 +671,22 @@ func (c *Conn) normalizeKeyUpdateError(ctx, operationCtx context.Context, err er
 }
 
 func (c *Conn) writeApplicationData(ctx context.Context, pkts []*dtlsflight.Packet) error {
-	for {
-		c.writeLock.Lock()
-		resume := c.applicationDataResume
-		if resume == nil {
-			epoch := dtlsstate.CommonState(c.state).LocalEpoch()
-			for _, pkt := range pkts {
-				pkt.Record.Header.Epoch = epoch
-			}
-			_, err := c.writePacketsWithResultLocked(ctx, pkts)
-			c.writeLock.Unlock()
-
-			return err
+	if dtlsstate.CommonState(c.state).LocalVersion.Equal(protocol.Version1_3) {
+		writer, ok := c.fsm.(dtlshandshake.ApplicationDataWriter)
+		if !ok {
+			return dtlserrors.ErrNotImplemented
 		}
-		c.writeLock.Unlock()
 
-		select {
-		case <-resume:
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-c.closed.Done():
-			return dtlserrors.ErrConnClosed
-		}
+		return writer.WriteApplicationData(ctx, pkts)
 	}
-}
 
-func (c *Conn) pauseApplicationData() {
-	// Serialize pausing with application record preparation.
-	// TODO: Replace this pause gate with unified serialization of application
-	// and post-handshake writes.
-	// https://www.rfc-editor.org/rfc/rfc8446.html#section-4.6.3
-	// https://www.rfc-editor.org/rfc/rfc9147.html#section-4.2.1
-	// https://www.rfc-editor.org/rfc/rfc9147.html#section-8
-	//nolint:godox
-	c.writeLock.Lock()
-	defer c.writeLock.Unlock()
-	if c.applicationDataResume == nil {
-		c.applicationDataResume = make(chan struct{})
+	epoch := dtlsstate.CommonState(c.state).LocalEpoch()
+	for _, pkt := range pkts {
+		pkt.Record.Header.Epoch = epoch
 	}
-}
+	_, err := c.writePacketsWithResult(ctx, pkts)
 
-func (c *Conn) resumeApplicationData() {
-	c.writeLock.Lock()
-	defer c.writeLock.Unlock()
-	if c.applicationDataResume != nil {
-		close(c.applicationDataResume)
-		c.applicationDataResume = nil
-	}
+	return err
 }
 
 // Close closes the connection.

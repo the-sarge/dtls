@@ -3899,6 +3899,23 @@ func TestDTLS13HandshakeAndApplicationData(t *testing.T) {
 	n, err = client.Read(buf)
 	require.NoError(t, err)
 	assert.Equal(t, serverPayload, buf[:n])
+
+	require.NoError(t, client.UpdateKeys(ctx, KeyUpdateOptions{RequestPeerUpdate: true}))
+	updatedClientPayload := []byte("client to server after KeyUpdate")
+	n, err = client.Write(updatedClientPayload)
+	require.NoError(t, err)
+	require.Equal(t, len(updatedClientPayload), n)
+	n, err = server.Read(buf)
+	require.NoError(t, err)
+	assert.Equal(t, updatedClientPayload, buf[:n])
+
+	updatedServerPayload := []byte("server to client after KeyUpdate")
+	n, err = server.Write(updatedServerPayload)
+	require.NoError(t, err)
+	require.Equal(t, len(updatedServerPayload), n)
+	n, err = client.Read(buf)
+	require.NoError(t, err)
+	assert.Equal(t, updatedServerPayload, buf[:n])
 }
 
 func TestDTLS13RetransmittedClientFinalFlight(t *testing.T) {
