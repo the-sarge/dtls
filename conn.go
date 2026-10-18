@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/netip"
 	"sync"
 	"time"
 
@@ -275,6 +276,9 @@ func createConn(nextConn net.PacketConn, rAddr net.Addr, config *dtlsConfig, isC
 }
 
 func newConn(nextConn net.PacketConn, rAddr net.Addr, configValues connConfigValues, handshakeConfig *dtlsconfig.HandshakeConfig, isClient bool) *Conn {
+	if isClient && handshakeConfig.ServerName == "" {
+		handshakeConfig.ServerName = serverNameFromAddr(rAddr)
+	}
 	conn := &Conn{
 		rAddr:                   rAddr,
 		handshakeConfig:         handshakeConfig,
@@ -312,6 +316,23 @@ func newConn(nextConn net.PacketConn, rAddr net.Addr, configValues connConfigVal
 	}
 
 	return conn
+}
+
+// serverNameFromAddr uses the destination identity, without reverse DNS lookup.
+// IPv6 scope identifiers select an interface and are not certificate identities.
+func serverNameFromAddr(addr net.Addr) string {
+	if addr == nil {
+		return ""
+	}
+	name, _, err := net.SplitHostPort(addr.String())
+	if err != nil {
+		return ""
+	}
+	if ip, parseErr := netip.ParseAddr(name); parseErr == nil {
+		return ip.WithZone("").String()
+	}
+
+	return name
 }
 
 // Handshake runs the client or server DTLS handshake

@@ -378,6 +378,9 @@ func VerifyClientCert(rawCertificates [][]byte, roots *x509.CertPool, certSignat
 }
 
 func VerifyServerCert(rawCertificates [][]byte, roots *x509.CertPool, serverName string, certSignatureSchemes []signaturehash.Algorithm) (chains [][]*x509.Certificate, err error) {
+	if serverName == "" {
+		return nil, dtlserrors.ErrServerNameRequired
+	}
 	certificate, err := loadCerts(rawCertificates)
 	if err != nil {
 		return nil, err
