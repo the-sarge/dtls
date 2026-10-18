@@ -126,19 +126,20 @@ func TestClientVerifiesDestination(t *testing.T) {
 				address     net.Addr
 				certName    string
 				serverName  string
+				wantSNI     string
 				insecure    bool
 				wantError   bool
 				missingName bool
 			}{
-				{name: "matching DNS", address: identityTestServerAddr, certName: identityTestServerName},
-				{name: "absolute DNS", address: identityTestAddr(identityTestServerName + ".:443"), certName: identityTestServerName},
-				{name: "absolute DNS insecure", address: identityTestAddr(identityTestServerName + ".:443"), certName: identityTestUnrelatedName, insecure: true},
+				{name: "matching DNS", address: identityTestServerAddr, certName: identityTestServerName, wantSNI: identityTestServerName},
+				{name: "absolute DNS", address: identityTestAddr(identityTestServerName + ".:443"), certName: identityTestServerName, wantSNI: identityTestServerName},
+				{name: "absolute DNS insecure", address: identityTestAddr(identityTestServerName + ".:443"), certName: identityTestUnrelatedName, wantSNI: identityTestServerName, insecure: true},
 				{name: "wrong DNS", address: identityTestServerAddr, certName: identityTestUnrelatedName, wantError: true},
 				{name: "matching IPv6", address: &net.UDPAddr{IP: net.ParseIP("::1"), Port: 443}, certName: "::1"},
 				{name: "wrong IPv6", address: &net.UDPAddr{IP: net.ParseIP("::1"), Port: 443}, certName: "::2", wantError: true},
 				{name: "scoped IPv6", address: &net.UDPAddr{IP: net.ParseIP("fe80::1"), Zone: "en0", Port: 443}, certName: "fe80::1"},
 				{name: "opaque address", address: identityTestAddr("opaque"), certName: identityTestServerName, wantError: true, missingName: true},
-				{name: "opaque explicit identity", address: identityTestAddr("opaque"), certName: identityTestServerName, serverName: identityTestServerName},
+				{name: "opaque explicit identity", address: identityTestAddr("opaque"), certName: identityTestServerName, serverName: identityTestServerName, wantSNI: identityTestServerName},
 				{name: "explicit insecure", address: identityTestAddr("opaque"), certName: identityTestServerName, insecure: true},
 			} {
 				t.Run(scenario.name, func(t *testing.T) {
@@ -165,6 +166,9 @@ func TestClientVerifiesDestination(t *testing.T) {
 					}
 					require.NoError(t, clientErr)
 					require.NoError(t, serverErr)
+					state, ok := server.ConnectionState()
+					require.True(t, ok)
+					assert.Equal(t, scenario.wantSNI, state.ServerName)
 				})
 			}
 		})
