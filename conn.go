@@ -12,6 +12,7 @@ import (
 	"io"
 	"net"
 	"net/netip"
+	"strings"
 	"sync"
 	"time"
 
@@ -332,7 +333,7 @@ func serverNameFromAddr(addr net.Addr) string {
 		return ip.WithZone("").String()
 	}
 
-	return name
+	return strings.TrimSuffix(name, ".")
 }
 
 // Handshake runs the client or server DTLS handshake

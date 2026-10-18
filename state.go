@@ -44,7 +44,9 @@ type State struct {
 	IdentityHint       []byte
 	SessionID          []byte
 	NegotiatedProtocol string
-	// ServerName is the negotiated SNI, or the public name during ECH rejection verification.
+	// ServerName is the client's configured or derived server identity, or the
+	// server's received SNI. Client IP identities are not sent as SNI. During ECH
+	// rejection verification it is the ECH public name.
 	ServerName string
 	// ECHAccepted reports whether ECH was negotiated successfully.
 	ECHAccepted bool

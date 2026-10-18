@@ -131,6 +131,8 @@ func TestClientVerifiesDestination(t *testing.T) {
 				missingName bool
 			}{
 				{name: "matching DNS", address: identityTestServerAddr, certName: identityTestServerName},
+				{name: "absolute DNS", address: identityTestAddr(identityTestServerName + ".:443"), certName: identityTestServerName},
+				{name: "absolute DNS insecure", address: identityTestAddr(identityTestServerName + ".:443"), certName: identityTestUnrelatedName, insecure: true},
 				{name: "wrong DNS", address: identityTestServerAddr, certName: identityTestUnrelatedName, wantError: true},
 				{name: "matching IPv6", address: &net.UDPAddr{IP: net.ParseIP("::1"), Port: 443}, certName: "::1"},
 				{name: "wrong IPv6", address: &net.UDPAddr{IP: net.ParseIP("::1"), Port: 443}, certName: "::2", wantError: true},
