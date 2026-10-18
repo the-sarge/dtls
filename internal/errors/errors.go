@@ -12,6 +12,7 @@ import (
 var (
 	ErrEarlyDataRequiresClaimStore = stderrors.New("nonzero maximum early-data size requires an EarlyDataSessionStore")
 	ErrConnClosed                  = stderrors.New("conn is closed")
+	ErrServerNameRequired          = stderrors.New("server name is required for certificate verification; use WithServerName for opaque addresses")
 
 	ErrDeadlineExceeded   = context.DeadlineExceeded
 	ErrEpochOverflow      = stderrors.New("epoch overflow")

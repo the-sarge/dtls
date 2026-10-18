@@ -17,6 +17,9 @@ on:
 
 jobs:
   lint:
+    permissions:
+      contents: read
+      pull-requests: read
     uses: pion/.goassets/.github/workflows/lint.reusable.yml@main
     with:
       golangci-lint-version: v2.10.1

@@ -25,4 +25,8 @@ on:
 
 jobs:
   analyze:
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
     uses: pion/.goassets/.github/workflows/codeql-analysis.reusable.yml@main

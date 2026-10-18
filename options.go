@@ -412,7 +412,12 @@ func cloneECHKeys(keys []EncryptedClientHelloKey) []ech.Key {
 	return copied
 }
 
-// WithServerName sets the server name for certificate verification.
+// WithServerName sets the DNS name or IP address for server certificate verification.
+// When empty, clients use the host from the destination address. Dial receives an
+// already resolved UDP address, so use this option to verify the original DNS name.
+// Certificate-authenticated clients using opaque addresses require an explicit
+// name unless WithInsecureSkipVerify is set.
+// IP addresses are verified against IP SANs and are not sent as SNI.
 func WithServerName(name string) Option {
 	return valueOption(func(c *dtlsConfig) *string { return &c.ServerName }, name)
 }
