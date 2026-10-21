@@ -23,5 +23,5 @@ jobs:
   fuzz:
     uses: pion/.goassets/.github/workflows/fuzz.reusable.yml@main
     with:
-      go-version: "1.27" # auto-update/latest-go-version
+      go-version: "1.27.3" # Security-pinned Go patch release.
       fuzz-time: "60s"
